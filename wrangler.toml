@@ -1,0 +1,8 @@
+name = "test2"
+pages_build_output_dir = "."
+compatibility_date = "2024-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "jangan-board"
+database_id = "REPLACE_AFTER_WRANGLER_D1_CREATE"
