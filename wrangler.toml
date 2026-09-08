@@ -4,5 +4,5 @@ compatibility_date = "2024-09-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "jangan-board"
-database_id = "REPLACE_AFTER_WRANGLER_D1_CREATE"
+database_name = "jangan-test"
+database_id = "03edc1e4-c58c-42d3-b1f6-0236d826a404"
