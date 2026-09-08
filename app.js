@@ -1,102 +1,52 @@
 // ---------------------------------------------------------------
 // PostStore: 게시글/댓글 데이터 계층.
-// 지금은 localStorage로 동작하지만, 백엔드 연동 시에는
-// 이 안의 구현만 fetch() 호출로 바꾸면 되고 화면 렌더링 코드는
-// 그대로 재사용할 수 있도록 인터페이스를 분리해둠.
+// server/server.js의 REST API(/api/posts...)를 호출한다.
+// 화면 렌더링 코드는 이 인터페이스만 사용하므로, API 경로가
+// 바뀌어도 이 모듈 안쪽만 고치면 된다.
 // ---------------------------------------------------------------
 const PostStore = (() => {
-  const STORAGE_KEY = "jangan-board-posts";
+  const API_BASE = "/api/posts";
 
-  function load() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      return null;
+  async function request(url, options) {
+    const res = await fetch(url, options);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `요청이 실패했습니다 (${res.status})`);
     }
-  }
-
-  function save(posts) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
-  }
-
-  function seedIfEmpty() {
-    let posts = load();
-    if (posts === null) {
-      posts = [
-        {
-          id: crypto.randomUUID(),
-          title: "장안구민회관 자유게시판에 오신 것을 환영합니다",
-          author: "관리자",
-          content: "회원 여러분과 소통하기 위한 공간입니다.\n편하게 안부를 남기거나 궁금한 점을 물어보세요!",
-          createdAt: Date.now() - 1000 * 60 * 60 * 5,
-          comments: [
-            {
-              id: crypto.randomUUID(),
-              author: "이웃주민",
-              content: "환영합니다! 자주 들를게요 :)",
-              createdAt: Date.now() - 1000 * 60 * 60 * 3,
-            },
-          ],
-        },
-        {
-          id: crypto.randomUUID(),
-          title: "이번 주 프로그램 문의드려요",
-          author: "김구민",
-          content: "이번 주에 요가 프로그램이 있는지 궁금합니다. 아시는 분 계신가요?",
-          createdAt: Date.now() - 1000 * 60 * 60 * 1,
-          comments: [],
-        },
-      ];
-      save(posts);
-    }
-    return posts;
+    if (res.status === 204) return null;
+    return res.json();
   }
 
   return {
     getAll() {
-      return seedIfEmpty().slice().sort((a, b) => b.createdAt - a.createdAt);
+      return request(API_BASE);
     },
     getById(id) {
-      return seedIfEmpty().find((p) => p.id === id) || null;
+      return request(`${API_BASE}/${id}`);
     },
     create({ title, author, content }) {
-      const posts = seedIfEmpty();
-      const post = {
-        id: crypto.randomUUID(),
-        title,
-        author,
-        content,
-        createdAt: Date.now(),
-        comments: [],
-      };
-      posts.push(post);
-      save(posts);
-      return post;
+      return request(API_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, author, content }),
+      });
     },
     remove(id) {
-      const posts = seedIfEmpty().filter((p) => p.id !== id);
-      save(posts);
+      return request(`${API_BASE}/${id}`, { method: "DELETE" });
     },
     addComment(postId, { author, content }) {
-      const posts = seedIfEmpty();
-      const post = posts.find((p) => p.id === postId);
-      if (!post) return null;
-      const comment = {
-        id: crypto.randomUUID(),
-        author,
-        content,
-        createdAt: Date.now(),
-      };
-      post.comments.push(comment);
-      save(posts);
-      return comment;
+      return request(`${API_BASE}/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ author, content }),
+      });
     },
   };
 })();
 
 // ---------------------------------------------------------------
-// 마지막으로 사용한 닉네임 기억
+// 마지막으로 사용한 닉네임 기억 (닉네임 자체는 서버가 아닌
+// 브라우저 로컬 편의 기능이라 localStorage 그대로 사용)
 // ---------------------------------------------------------------
 const NICKNAME_KEY = "jangan-board-last-nickname";
 function getLastNickname() {
@@ -104,6 +54,10 @@ function getLastNickname() {
 }
 function saveLastNickname(name) {
   localStorage.setItem(NICKNAME_KEY, name);
+}
+
+function showError(message) {
+  alert(message);
 }
 
 // ---------------------------------------------------------------
@@ -178,10 +132,17 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-function renderPostList() {
-  const posts = PostStore.getAll();
+async function renderPostList() {
   const listEl = document.getElementById("post-list");
   const emptyEl = document.getElementById("empty-message");
+
+  let posts;
+  try {
+    posts = await PostStore.getAll();
+  } catch (err) {
+    showError("게시글 목록을 불러오지 못했습니다. 서버가 실행 중인지 확인해주세요.");
+    return;
+  }
 
   listEl.innerHTML = "";
   emptyEl.hidden = posts.length > 0;
@@ -194,7 +155,7 @@ function renderPostList() {
       <div class="post-item-meta">
         <span>${escapeHtml(post.author)}</span>
         <span>${formatDate(post.createdAt)}</span>
-        <span>댓글 ${post.comments.length}</span>
+        <span>댓글 ${post.commentCount}</span>
       </div>
     `;
     li.addEventListener("click", () => showBoardView("detail", { postId: post.id }));
@@ -205,9 +166,12 @@ function renderPostList() {
 // ---------------------------------------------------------------
 // 상세 렌더링
 // ---------------------------------------------------------------
-function renderPostDetail(postId) {
-  const post = PostStore.getById(postId);
-  if (!post) {
+async function renderPostDetail(postId) {
+  let post;
+  try {
+    post = await PostStore.getById(postId);
+  } catch (err) {
+    showError("게시글을 불러오지 못했습니다.");
     showBoardView("list");
     return;
   }
@@ -246,17 +210,21 @@ document.getElementById("btn-cancel-write").addEventListener("click", () => {
   showBoardView("list");
 });
 
-document.getElementById("form-write").addEventListener("submit", (e) => {
+document.getElementById("form-write").addEventListener("submit", async (e) => {
   e.preventDefault();
   const author = document.getElementById("write-author").value.trim();
   const title = document.getElementById("write-title").value.trim();
   const content = document.getElementById("write-content").value.trim();
   if (!author || !title || !content) return;
 
-  saveLastNickname(author);
-  const post = PostStore.create({ author, title, content });
-  document.getElementById("form-write").reset();
-  showBoardView("detail", { postId: post.id });
+  try {
+    saveLastNickname(author);
+    const post = await PostStore.create({ author, title, content });
+    document.getElementById("form-write").reset();
+    showBoardView("detail", { postId: post.id });
+  } catch (err) {
+    showError("글 등록에 실패했습니다. 서버가 실행 중인지 확인해주세요.");
+  }
 });
 
 // ---------------------------------------------------------------
@@ -266,26 +234,34 @@ document.getElementById("btn-back-to-list").addEventListener("click", () => {
   showBoardView("list");
 });
 
-document.getElementById("btn-delete-post").addEventListener("click", () => {
+document.getElementById("btn-delete-post").addEventListener("click", async () => {
   if (!currentPostId) return;
   if (!confirm("이 글을 삭제할까요? 댓글도 함께 삭제됩니다.")) return;
-  PostStore.remove(currentPostId);
-  showBoardView("list");
+  try {
+    await PostStore.remove(currentPostId);
+    showBoardView("list");
+  } catch (err) {
+    showError("삭제에 실패했습니다.");
+  }
 });
 
 // ---------------------------------------------------------------
 // 이벤트: 댓글 작성
 // ---------------------------------------------------------------
-document.getElementById("form-comment").addEventListener("submit", (e) => {
+document.getElementById("form-comment").addEventListener("submit", async (e) => {
   e.preventDefault();
   const author = document.getElementById("comment-author").value.trim();
   const content = document.getElementById("comment-content").value.trim();
   if (!author || !content || !currentPostId) return;
 
-  saveLastNickname(author);
-  PostStore.addComment(currentPostId, { author, content });
-  document.getElementById("comment-content").value = "";
-  renderPostDetail(currentPostId);
+  try {
+    saveLastNickname(author);
+    await PostStore.addComment(currentPostId, { author, content });
+    document.getElementById("comment-content").value = "";
+    renderPostDetail(currentPostId);
+  } catch (err) {
+    showError("댓글 등록에 실패했습니다.");
+  }
 });
 
 // ---------------------------------------------------------------
