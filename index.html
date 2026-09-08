@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>장안구민회관 - 소통창구</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="#" class="logo" data-nav="home">🏠 장안구민회관</a>
+    <nav class="main-nav">
+      <button class="nav-link active" data-nav="home">홈</button>
+      <button class="nav-link" data-nav="board">자유게시판</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- 홈 -->
+  <section id="page-home" class="page active">
+    <div class="hero">
+      <h1>장안구민회관 소통창구</h1>
+      <p>회원 여러분의 이야기를 자유롭게 나누는 공간입니다.<br>공지, 안부, 궁금한 점을 편하게 남겨보세요.</p>
+      <button class="btn btn-primary" data-nav="board">자유게시판 바로가기</button>
+    </div>
+
+    <div class="info-cards">
+      <div class="info-card">
+        <h3>📢 자유롭게 소통해요</h3>
+        <p>회원이라면 누구나 닉네임만으로 글과 댓글을 남길 수 있어요.</p>
+      </div>
+      <div class="info-card">
+        <h3>🤝 서로 배려해요</h3>
+        <p>다른 회원을 존중하는 따뜻한 게시판을 함께 만들어가요.</p>
+      </div>
+      <div class="info-card">
+        <h3>🏛️ 장안구민회관</h3>
+        <p>지역 주민을 위한 다양한 프로그램과 소식을 준비하고 있습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 자유게시판 -->
+  <section id="page-board" class="page">
+
+    <!-- 목록 뷰 -->
+    <div id="view-list" class="board-view">
+      <div class="board-header">
+        <h2>자유게시판</h2>
+        <button id="btn-write" class="btn btn-primary">✏️ 글쓰기</button>
+      </div>
+      <ul id="post-list" class="post-list"></ul>
+      <p id="empty-message" class="empty-message" hidden>아직 등록된 글이 없어요. 첫 글을 남겨보세요!</p>
+    </div>
+
+    <!-- 글쓰기 뷰 -->
+    <div id="view-write" class="board-view" hidden>
+      <h2>글쓰기</h2>
+      <form id="form-write" class="post-form">
+        <label>
+          닉네임
+          <input type="text" id="write-author" maxlength="20" placeholder="닉네임을 입력하세요" required>
+        </label>
+        <label>
+          제목
+          <input type="text" id="write-title" maxlength="60" placeholder="제목을 입력하세요" required>
+        </label>
+        <label>
+          내용
+          <textarea id="write-content" rows="8" placeholder="내용을 입력하세요" required></textarea>
+        </label>
+        <div class="form-actions">
+          <button type="button" id="btn-cancel-write" class="btn btn-ghost">취소</button>
+          <button type="submit" class="btn btn-primary">등록</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 상세 뷰 -->
+    <div id="view-detail" class="board-view" hidden>
+      <button id="btn-back-to-list" class="btn btn-ghost btn-back">← 목록으로</button>
+      <article class="post-detail">
+        <h2 id="detail-title"></h2>
+        <div class="post-meta">
+          <span id="detail-author"></span>
+          <span id="detail-date"></span>
+        </div>
+        <p id="detail-content" class="post-content"></p>
+        <button id="btn-delete-post" class="btn btn-danger-outline">글 삭제</button>
+      </article>
+
+      <section class="comments">
+        <h3>댓글 <span id="comment-count">0</span></h3>
+        <ul id="comment-list" class="comment-list"></ul>
+
+        <form id="form-comment" class="comment-form">
+          <input type="text" id="comment-author" maxlength="20" placeholder="닉네임" required>
+          <input type="text" id="comment-content" maxlength="200" placeholder="댓글을 입력하세요" required>
+          <button type="submit" class="btn btn-primary">등록</button>
+        </form>
+      </section>
+    </div>
+
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>장안구민회관 · 경기도 수원시 장안구 (주소 예시) · 문의: 031-000-0000</p>
+  <p>&copy; 2026 장안구민회관. All rights reserved.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
